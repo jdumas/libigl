@@ -27,17 +27,17 @@ namespace ImGui
 
 static auto vector_getter = [](void* vec, int idx, const char** out_text)
 {
-  auto& vector = *static_cast<std::vector<std::string>*>(vec);
+  const auto& vector = *static_cast<const std::vector<std::string>*>(const_cast<const void *>(vec));
   if (idx < 0 || idx >= static_cast<int>(vector.size())) { return false; }
   *out_text = vector.at(idx).c_str();
   return true;
 };
 
-inline bool Combo(const char* label, int* idx, std::vector<std::string>& values)
+inline bool Combo(const char* label, int* idx, const std::vector<std::string>& values)
 {
   if (values.empty()) { return false; }
   return Combo(label, idx, vector_getter,
-    static_cast<void*>(&values), values.size());
+    const_cast<void *>(static_cast<const void*>(&values)), values.size());
 }
 
 inline bool Combo(const char* label, int* idx, std::function<const char *(int)> getter, int items_count)
