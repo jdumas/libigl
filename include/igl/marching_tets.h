@@ -32,12 +32,14 @@ namespace igl {
   //  SF  #SF x 3 array -- The face indexes of the output level surface mesh
   //  J   #SF list of indices into TT revealing which tet each face comes from
   //  BC  #SV x #TV list of barycentric coordinates so that SV = BC*TV
+  //  SE  #SV x 2 array -- Indices into TV revealing where each vertex comes from
   template <typename DerivedTV,
             typename DerivedTT,
             typename DerivedS,
             typename DerivedSV,
             typename DerivedSF,
             typename DerivedJ,
+            typename DerivedSE,
             typename BCType>
   IGL_INLINE void marching_tets(
       const Eigen::PlainObjectBase<DerivedTV>& TV,
@@ -47,7 +49,8 @@ namespace igl {
       Eigen::PlainObjectBase<DerivedSV>& SV,
       Eigen::PlainObjectBase<DerivedSF>& SF,
       Eigen::PlainObjectBase<DerivedJ>& J,
-      Eigen::SparseMatrix<BCType>& BC);
+      Eigen::SparseMatrix<BCType>& BC,
+      Eigen::PlainObjectBase<DerivedSE> &SE);
 
   // marching_tets( TV, TT, S, SV, SF, J, BC)
   //
@@ -77,11 +80,48 @@ namespace igl {
       const Eigen::PlainObjectBase<DerivedTV>& TV,
       const Eigen::PlainObjectBase<DerivedTT>& TT,
       const Eigen::PlainObjectBase<DerivedS>& S,
+      double isovalue,
       Eigen::PlainObjectBase<DerivedSV>& SV,
       Eigen::PlainObjectBase<DerivedSF>& SF,
       Eigen::PlainObjectBase<DerivedJ>& J,
       Eigen::SparseMatrix<BCType>& BC) {
-    return igl::marching_tets(TV, TT, S, 0.0, SV, SF, J, BC);
+    Eigen::MatrixXi _SE;
+    return igl::marching_tets(TV, TT, S, isovalue, SV, SF, J, BC, _SE);
+  }
+
+  // marching_tets( TV, TT, S, SV, SF, J, BC)
+  //
+  // Performs the marching tetrahedra algorithm on a tet mesh defined by TV and
+  // TT with scalar values defined at each vertex in TV. The output is a
+  // triangle mesh approximating the isosurface coresponding to an isovalue of 0.
+  //
+  // Input:
+  //  TV  #tet_vertices x 3 array -- The vertices of the tetrahedral mesh
+  //  TT  #tets x 4 array --  The indexes of each tet in the tetrahedral mesh
+  //  S  #tet_vertices x 1 array -- The values defined on each tet vertex
+  //
+  // Output:
+  //  SV  #SV x 3 array -- The vertices of the output level surface mesh
+  //  SF  #SF x 3 array -- The face indexes of the output level surface mesh
+  //  J   #SF list of indices into TT revealing which tet each face comes from
+  //  BC  #SV x #TV list of barycentric coordinates so that SV = BC*TV
+  template <typename DerivedTV,
+            typename DerivedTT,
+            typename DerivedS,
+            typename DerivedSV,
+            typename DerivedSF,
+            typename DerivedJ,
+            typename BCType>
+  IGL_INLINE void marching_tets(
+      const Eigen::PlainObjectBase<DerivedTV>& TV,
+      const Eigen::PlainObjectBase<DerivedTT>& TT,
+      const Eigen::PlainObjectBase<DerivedS>& S,
+      Eigen::PlainObjectBase<DerivedSV>& SV,
+      Eigen::PlainObjectBase<DerivedSF>& SF,
+      Eigen::PlainObjectBase<DerivedJ>& J,
+      Eigen::SparseMatrix<BCType>& BC) {
+    Eigen::MatrixXi _SE;
+    return igl::marching_tets(TV, TT, S, 0.0, SV, SF, J, BC, _SE);
   }
 
   // marching_tets( TV, TT, S, isovalue, SV, SF, J)
@@ -116,7 +156,8 @@ namespace igl {
       Eigen::PlainObjectBase<DerivedSF>& SF,
       Eigen::PlainObjectBase<DerivedJ>& J) {
     Eigen::SparseMatrix<double> _BC;
-    return igl::marching_tets(TV, TT, S, isovalue, SV, SF, J, _BC);
+    Eigen::MatrixXi _SE;
+    return igl::marching_tets(TV, TT, S, isovalue, SV, SF, J, _BC, _SE);
   }
 
   // marching_tets( TV, TT, S, isovalue, SV, SF, BC)
@@ -151,7 +192,8 @@ namespace igl {
       Eigen::PlainObjectBase<DerivedSF>& SF,
       Eigen::SparseMatrix<BCType>& BC) {
     Eigen::VectorXi _J;
-    return igl::marching_tets(TV, TT, S, isovalue, SV, SF, _J, BC);
+    Eigen::MatrixXi _SE;
+    return igl::marching_tets(TV, TT, S, isovalue, SV, SF, _J, BC, _SE);
   }
 
   // marching_tets( TV, TT, S, isovalue, SV, SF)
@@ -184,7 +226,8 @@ namespace igl {
       Eigen::PlainObjectBase<DerivedSF>& SF) {
     Eigen::VectorXi _J;
     Eigen::SparseMatrix<double> _BC;
-    return igl::marching_tets(TV, TT, S, isovalue, SV, SF, _J, _BC);
+    Eigen::MatrixXi _SE;
+    return igl::marching_tets(TV, TT, S, isovalue, SV, SF, _J, _BC, _SE);
   }
 
 }

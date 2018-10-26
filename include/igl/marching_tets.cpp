@@ -20,6 +20,7 @@ template <typename DerivedTV,
           typename DerivedSV,
           typename DerivedSF,
           typename DerivedJ,
+          typename DerivedSE,
           typename BCType>
 void igl::marching_tets(
     const Eigen::PlainObjectBase<DerivedTV>& TV,
@@ -29,7 +30,8 @@ void igl::marching_tets(
     Eigen::PlainObjectBase<DerivedSV>& outV,
     Eigen::PlainObjectBase<DerivedSF>& outF,
     Eigen::PlainObjectBase<DerivedJ>& J,
-    Eigen::SparseMatrix<BCType>& BC)
+    Eigen::SparseMatrix<BCType>& BC,
+    Eigen::PlainObjectBase<DerivedSE> &outE)
 {
   using namespace std;
 
@@ -134,6 +136,7 @@ void igl::marching_tets(
   int num_unique = 0;
   outV.resize(edge_table.size(), 3);
   outF.resize(faces.size(), 3);
+  outE.resize(edge_table.size(), 2);
   J.resize(faces.size());
 
   // Sparse matrix triplets for BC
@@ -172,6 +175,7 @@ void igl::marching_tets(
         // Create a casted copy in case DerivedTV::Scalar is a float and we need to downcast
         const typename DerivedTV::Scalar v_w = static_cast<typename DerivedTV::Scalar>(w);
         outV.row(num_unique) = (1-v_w)*v1 + v_w*v2;
+        outE.row(num_unique) << edge.first, edge.second;
         outF(f, v) = num_unique;
         J[f] = ti;
 
@@ -183,6 +187,7 @@ void igl::marching_tets(
     }
   }
   outV.conservativeResize(num_unique, 3);
+  outE.conservativeResize(num_unique, 2);
   J.conservativeResize(num_unique, 1);
   BC.resize(num_unique, TV.rows());
   BC.setFromTriplets(bc_triplets.begin(), bc_triplets.end());
@@ -190,5 +195,5 @@ void igl::marching_tets(
 
 
 #ifdef IGL_STATIC_LIBRARY
-template void igl::marching_tets<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, 1, 0, -1, 1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, 1, 0, -1, 1>, double>(Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> > const&, double, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> >&, Eigen::SparseMatrix<double, 0, int>&);
+template void igl::marching_tets<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, 1, 0, -1, 1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, 1, 0, -1, 1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, double>(Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> > const&, double, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> >&, Eigen::SparseMatrix<double, 0, int>&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> >&);
 #endif // IGL_STATIC_LIBRARY
