@@ -132,7 +132,7 @@ namespace glfw
     return EXIT_SUCCESS;
   }
 
-  IGL_INLINE int  Viewer::launch_init(bool resizable,bool fullscreen, int windowWidth, int windowHeight)
+  IGL_INLINE int  Viewer::launch_init(bool resizable, bool fullscreen, int windowWidth, int windowHeight, bool hidden)
   {
     glfwSetErrorCallback(glfw_error_callback);
     if (!glfwInit())
@@ -146,7 +146,12 @@ namespace glfw
       glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
       glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
     #endif
-    if(fullscreen)
+    if (hidden)
+    {
+      glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+      window = glfwCreateWindow(windowWidth, windowHeight, "", NULL, NULL);
+    }
+    else if (fullscreen)
     {
       GLFWmonitor *monitor = glfwGetPrimaryMonitor();
       const GLFWvidmode *mode = glfwGetVideoMode(monitor);
