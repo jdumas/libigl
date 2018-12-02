@@ -217,7 +217,6 @@ namespace glfw
     int frame_counter = 0;
     while (!glfwWindowShouldClose(window))
     {
-
       double tic = get_seconds();
       draw();
       glfwSwapBuffers(window);
