@@ -389,7 +389,7 @@ py::class_<igl::opengl::ViewerCore> viewercore_class(me, "ViewerCore");
     #endif
 
     .def("launch", &igl::opengl::glfw::Viewer::launch, py::arg("resizable") = true, py::arg("fullscreen") = false, py::arg("windowWidth") = 1280, py::arg("windowHeight") = 800)
-    .def("launch_init", &igl::opengl::glfw::Viewer::launch_init, py::arg("resizable") = true, py::arg("fullscreen") = false, py::arg("windowWidth") = 1280, py::arg("windowHeight") = 800)
+    .def("launch_init", &igl::opengl::glfw::Viewer::launch_init, py::arg("resizable") = true, py::arg("fullscreen") = false, py::arg("windowWidth") = 1280, py::arg("windowHeight") = 800, py::arg("hidden") = false)
     .def("launch_rendering", &igl::opengl::glfw::Viewer::launch_rendering, py::arg("loop") = true)
     .def("launch_shut", &igl::opengl::glfw::Viewer::launch_shut)
     .def("init", &igl::opengl::glfw::Viewer::init)
