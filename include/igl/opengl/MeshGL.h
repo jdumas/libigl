@@ -13,6 +13,7 @@
 // the data
 
 #include <igl/igl_inline.h>
+#include <igl/opengl/gl.h>
 #include <Eigen/Core>
 
 namespace igl
@@ -82,6 +83,8 @@ public:
 
   int tex_u;
   int tex_v;
+  GLenum tex_wrap = GL_REPEAT;
+  GLenum tex_filter = GL_LINEAR;
   Eigen::Matrix<char,Eigen::Dynamic,1> tex;
 
   Eigen::Matrix<unsigned, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> F_vbo;
