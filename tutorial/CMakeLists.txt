@@ -61,6 +61,9 @@ if(TUTORIALS_CHAPTER1)
   endif()
   add_subdirectory("107_MultipleMeshes")
   add_subdirectory("108_MultipleViews")
+  if(LIBIGL_WITH_OPENGL_GLFW_IMGUI)
+    add_subdirectory("109_MultipleWindows")
+  endif()
 endif()
 
 # Chapter 2
