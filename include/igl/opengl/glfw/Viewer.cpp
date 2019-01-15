@@ -129,17 +129,17 @@ namespace glfw
   Viewer * Viewer::master = nullptr;
 
   IGL_INLINE int Viewer::launch(bool resizable /*= true*/, bool fullscreen /*= false*/, bool hidden /*=false*/,
-    int windowWidth /*= 1280*/, int windowHeight /*= 800*/)
+    const std::string &name, int windowWidth /*= 1280*/, int windowHeight /*= 800*/)
   {
     // TODO return values are being ignored...
-    launch_init(resizable, fullscreen, hidden, windowWidth, windowHeight);
+    launch_init(resizable, fullscreen, hidden, name, windowWidth, windowHeight);
     launch_rendering(true);
     launch_shut();
     return EXIT_SUCCESS;
   }
 
   IGL_INLINE int Viewer::launch_with(Viewer *shared, bool resizable, bool fullscreen, bool hidden,
-    int windowWidth, int windowHeight)
+    const std::string &name, int windowWidth, int windowHeight)
   {
     if (!shared || shared == this)
       return EXIT_FAILURE;
@@ -156,7 +156,7 @@ namespace glfw
     }
 
     parent = root;
-    launch_init(resizable, fullscreen, hidden, windowWidth, windowHeight);
+    launch_init(resizable, fullscreen, hidden, name, windowWidth, windowHeight);
     if (root->children.empty())
     {
       root->children.push_back(root);
@@ -165,8 +165,8 @@ namespace glfw
     return EXIT_SUCCESS;
   }
 
-  IGL_INLINE int Viewer::launch_init(bool resizable, bool fullscreen, bool hidden,
-    int windowWidth, int windowHeight)
+  IGL_INLINE int  Viewer::launch_init(bool resizable, bool fullscreen, bool hidden,
+    const std::string &name, int windowWidth, int windowHeight)
   {
     glfwSetErrorCallback(glfw_error_callback);
     if (!glfwInit())
@@ -183,7 +183,7 @@ namespace glfw
     if (hidden)
     {
       glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
-      window = glfwCreateWindow(windowWidth, windowHeight, "", NULL, NULL);
+      window = glfwCreateWindow(windowWidth, windowHeight, name.c_str(), NULL, NULL);
     }
     else
     {
@@ -194,11 +194,11 @@ namespace glfw
       {
         GLFWmonitor *monitor = glfwGetPrimaryMonitor();
         const GLFWvidmode *mode = glfwGetVideoMode(monitor);
-        window = glfwCreateWindow(mode->width,mode->height,"libigl viewer",monitor,share);
+        window = glfwCreateWindow(mode->width, mode->height, name.c_str(), monitor, share);
       }
       else
       {
-        window = glfwCreateWindow(windowWidth, windowHeight, "libigl viewer", nullptr, share);
+        window = glfwCreateWindow(windowWidth, windowHeight, name.c_str(), nullptr, share);
       }
     }
     if (!window)
@@ -676,6 +676,25 @@ namespace glfw
     return false;
   }
 
+  IGL_INLINE void Viewer::select_hovered_core()
+  {
+    int width_window, height_window;
+    glfwGetFramebufferSize(window, &width_window, &height_window);
+    for (int i = 0; i < core_list.size(); i++)
+    {
+      Eigen::Vector4f viewport = core_list[i].viewport;
+
+      if ((current_mouse_x > viewport[0]) &&
+          (current_mouse_x < viewport[0] + viewport[2]) &&
+          ((height_window - current_mouse_y) > viewport[1]) &&
+          ((height_window - current_mouse_y) < viewport[1] + viewport[3]))
+      {
+        selected_core_index = i;
+        break;
+      }
+    }
+  }
+
   IGL_INLINE bool Viewer::mouse_down(MouseButton button,int modifier)
   {
     // Remember mouse location at down even if used by callback/plugin
@@ -691,6 +710,9 @@ namespace glfw
         return true;
 
     down = true;
+
+    // Select the core containing the click location.
+    select_hovered_core();
 
     down_translation = core().camera_translation;
 
@@ -773,22 +795,13 @@ namespace glfw
       if (callback_mouse_move(*this, mouse_x, mouse_y))
         return true;
 
-    int width_window, height_window;
-    glfwGetFramebufferSize(window, &width_window, &height_window);
-    for (int i = 0; i < core_list.size(); i++)
-    {
-        Eigen::Vector4f viewport = core_list[i].viewport;
-
-        if (mouse_x > viewport[0] && mouse_x < viewport[0] + viewport[2] &&
-            height_window-mouse_y > viewport[1] && height_window-mouse_y < viewport[1] + viewport[3])
-        {
-            selected_core_index = i;
-            break;
-        }
-    }
 
     if (down)
     {
+      // We need the window height to transform the mouse click coordinates into viewport-mouse-click coordinates
+      // for igl::trackball and igl::two_axis_valuator_fixed_up
+      int width_window, height_window;
+      glfwGetFramebufferSize(window, &width_window, &height_window);
       switch (mouse_mode)
       {
         case MouseMode::Rotation:
@@ -805,10 +818,10 @@ namespace glfw
                 core().viewport(3),
                 2.0f,
                 down_rotation,
-                down_mouse_x,
-                down_mouse_y,
-                mouse_x,
-                mouse_y,
+                down_mouse_x - core().viewport(0),
+                down_mouse_y - (height_window - core().viewport(1) - core().viewport(3)),
+                mouse_x - core().viewport(0),
+                mouse_y - (height_window - core().viewport(1) - core().viewport(3)),
                 core().trackball_angle);
               break;
             case ViewerCore::ROTATION_TYPE_TWO_AXIS_VALUATOR_FIXED_UP:
@@ -816,7 +829,10 @@ namespace glfw
                 core().viewport(2),core().viewport(3),
                 2.0,
                 down_rotation,
-                down_mouse_x, down_mouse_y, mouse_x, mouse_y,
+                down_mouse_x - core().viewport(0),
+                down_mouse_y - (height_window - core().viewport(1) - core().viewport(3)),
+                mouse_x - core().viewport(0),
+                mouse_y - (height_window - core().viewport(1) - core().viewport(3)),
                 core().trackball_angle);
               break;
           }
@@ -854,6 +870,10 @@ namespace glfw
 
   IGL_INLINE bool Viewer::mouse_scroll(float delta_y)
   {
+    // Direct the scrolling operation to the appropriate viewport
+    // (unless the core selection is locked by an ongoing mouse interaction).
+    if (!down)
+      select_hovered_core();
     scroll_position += delta_y;
 
     for (unsigned int i = 0; i<plugins.size(); ++i)

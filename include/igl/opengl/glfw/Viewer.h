@@ -46,11 +46,11 @@ namespace glfw
     enum class MouseButton {Left, Middle, Right};
     enum class MouseMode { None, Rotation, Zoom, Pan, Translation} mouse_mode;
     IGL_INLINE int launch(bool resizable = true, bool fullscreen = false, bool hidden = false,
-        int width = 1280, int height = 800);
+        const std::string &name = "libigl viewer", int width = 1280, int height = 800);
     IGL_INLINE int launch_with(Viewer *parent, bool resizable = true, bool fullscreen = false, bool hidden = false,
-        int width = 1280, int height = 800);
+        const std::string &name = "libigl viewer", int width = 1280, int height = 800);
     IGL_INLINE int launch_init(bool resizable = true, bool fullscreen = false, bool hidden = false,
-        int width = 1280, int height = 800);
+        const std::string &name = "libigl viewer", int width = 1280, int height = 800);
     IGL_INLINE bool launch_rendering(bool loop = true);
     IGL_INLINE void launch_shut();
     IGL_INLINE void init();
@@ -165,6 +165,10 @@ namespace glfw
     // Retrieve viewport index from its unique identifier
     // Returns 0 if not found
     IGL_INLINE size_t core_index(const int id) const;
+
+    // Change selected_core_index to the viewport containing the mouse
+    // (current_mouse_x, current_mouse_y)
+    IGL_INLINE void select_hovered_core();
 
 public:
     //////////////////////
