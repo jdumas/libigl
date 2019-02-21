@@ -68,7 +68,7 @@ IGL_INLINE double igl::mapping_energy_with_jacobians(
         }
         case igl::MappingEnergyType::EXP_SYMMETRIC_DIRICHLET:
         {
-          energy += areas(i) * log((pow(s1, 2) + pow(s1, -2) + pow(s2, 2) + pow(s2, -2)))/log(exp_factor);
+          energy += areas(i) * log(exp_factor * (pow(s1, 2) + pow(s1, -2) + pow(s2, 2) + pow(s2, -2)));
           break;
         }
 
