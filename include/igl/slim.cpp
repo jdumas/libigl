@@ -470,11 +470,10 @@ IGL_INLINE void igl::slim_update_weights_and_closest_rotations_with_jacobians(co
           double s1_g = 2 * (s1 - pow(s1, -3));
           double s2_g = 2 * (s2 - pow(s2, -3));
 
-          double in_exp = (pow(s1, 2) + pow(s1, -2) + pow(s2, 2) + pow(s2, -2));
-          double inv_thing = 1/(in_exp)/log(exp_f);
+          double denom = (pow(s1, 2) + pow(s1, -2) + pow(s2, 2) + pow(s2, -2));
 
-          s1_g *= inv_thing * exp_f;
-          s2_g *= inv_thing * exp_f;
+          s1_g /= denom;
+          s2_g /= denom;
 
           m_sing_new << sqrt(s1_g / (2 * (s1 - 1))), sqrt(s2_g / (2 * (s2 - 1)));
           break;
