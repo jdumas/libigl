@@ -283,6 +283,12 @@ typedef Face* face_pointer;
 typedef Mesh* mesh_pointer;
 typedef MeshElementBase* base_pointer;
 
+typedef const Vertex* const_vertex_pointer;
+typedef const Edge* const_edge_pointer;
+typedef const Face* const_face_pointer;
+typedef const Mesh* const_mesh_pointer;
+typedef const MeshElementBase* const_base_pointer;
+
 template <class Data>		//simple vector that stores info about mesh references
 class SimpleVector			//for efficiency, it uses an outside memory allocator
 {
@@ -293,10 +299,13 @@ public:
 	{};
 
 	typedef Data* iterator;
+	typedef const Data* const_iterator;
 
-	unsigned size(){return m_size;};
+	unsigned size() const {return m_size;};
 	iterator begin(){return m_begin;};
 	iterator end(){return m_begin + m_size;};
+	const_iterator begin() const {return m_begin;};
+	const_iterator end() const {return m_begin + m_size;};
 
 	template<class DataPointer>
 	void set_allocation(DataPointer begin, unsigned size)
@@ -307,6 +316,12 @@ public:
 	}
 
 	Data& operator[](unsigned i)
+	{
+		assert(i < m_size);
+		return *(m_begin + i);
+	}
+
+	const Data& operator[] (unsigned i) const
 	{
 		assert(i < m_size);
 		return *(m_begin + i);
@@ -347,8 +362,13 @@ public:
 	edge_pointer_vector& adjacent_edges(){return m_adjacent_edges;};
 	face_pointer_vector& adjacent_faces(){return m_adjacent_faces;};
 
+	const vertex_pointer_vector& adjacent_vertices() const {return m_adjacent_vertices;};
+	const edge_pointer_vector& adjacent_edges() const {return m_adjacent_edges;};
+	const face_pointer_vector& adjacent_faces() const {return m_adjacent_faces;};
+
 	unsigned& id(){return m_id;};
-	PointType type(){return m_type;};
+	const unsigned& id() const {return m_id;};
+	PointType type() const {return m_type;};
 
 protected:
 	vertex_pointer_vector m_adjacent_vertices;		//list of the adjacent vertices
@@ -363,7 +383,7 @@ class Point3D			//point in 3D and corresponding operations
 {
 public:
 	Point3D(){};
-	Point3D(Point3D* p)
+	Point3D(const Point3D* p)
 	{
 		x() = p->x();
 		y() = p->y();
@@ -375,6 +395,11 @@ public:
 	double& y(){return *(m_coordinates+1);};
 	double& z(){return *(m_coordinates+2);};
 
+	const double* xyz() const {return m_coordinates;};
+	const double& x() const {return *m_coordinates;};
+	const double& y() const {return *(m_coordinates+1);};
+	const double& z() const {return *(m_coordinates+2);};
+
 	void set(double new_x, double new_y, double new_z)
 	{
 		x() = new_x;
@@ -382,14 +407,14 @@ public:
 		z() = new_z;
 	}
 
-	void set(double* data)
+	void set(const double* data)
 	{
 		x() = *data;
 		y() = *(data+1);
 		z() = *(data+2);
 	}
 
-	double distance(double* v)
+	double distance(const double* v) const
 	{
 		double dx = m_coordinates[0] - v[0];
 		double dy = m_coordinates[1] - v[1];
@@ -398,12 +423,12 @@ public:
 		return sqrt(dx*dx + dy*dy + dz*dz);
 	};
 
-    double distance(Point3D* v)
+    double distance(const Point3D* v) const
 	{
 		return distance(v->xyz());
 	};
 
-	void add(Point3D* v)
+	void add(const Point3D* v)
 	{
 		x() += v->x();
 		y() += v->y();
@@ -432,6 +457,8 @@ public:
 	~Vertex(){};
 
 	bool& saddle_or_boundary(){return m_saddle_or_boundary;};
+	const bool& saddle_or_boundary() const {return m_saddle_or_boundary;};
+
 private:
 									//this flag speeds up exact geodesic algorithm
 	bool m_saddle_or_boundary;		//it is true if total adjacent angle is larger than 2*PI or this vertex belongs to the mesh boundary
@@ -448,11 +475,11 @@ public:
 
 	~Face(){};
 
-	edge_pointer opposite_edge(vertex_pointer v);
-	vertex_pointer opposite_vertex(edge_pointer e);
-	edge_pointer next_edge(edge_pointer e, vertex_pointer v);
+	const_edge_pointer opposite_edge(const_vertex_pointer v) const;
+	const_vertex_pointer opposite_vertex(const_edge_pointer e) const;
+	const_edge_pointer next_edge(const_edge_pointer e, const_vertex_pointer v) const;
 
-	double vertex_angle(vertex_pointer v)
+	double vertex_angle(const_vertex_pointer v) const
 	{
 		for(unsigned i=0; i<3; ++i)
 		{
@@ -482,8 +509,9 @@ public:
 	~Edge(){};
 
 	double& length(){return m_length;};
+	const double& length() const {return m_length;};
 
-	face_pointer opposite_face(face_pointer f)
+	const_face_pointer opposite_face(const_face_pointer f) const
 	{
 		if(adjacent_faces().size() == 1)
 		{
@@ -498,7 +526,7 @@ public:
 			   adjacent_faces()[1] : adjacent_faces()[0];
 	};
 
-	vertex_pointer opposite_vertex(vertex_pointer v)
+	const_vertex_pointer opposite_vertex(const_vertex_pointer v) const
 	{
 		assert(belongs(v));
 
@@ -506,20 +534,20 @@ public:
 			   adjacent_vertices()[1] : adjacent_vertices()[0];
 	};
 
-	bool belongs(vertex_pointer v)
+	bool belongs(const_vertex_pointer v) const
 	{
 		return adjacent_vertices()[0]->id() == v->id() ||
 			   adjacent_vertices()[1]->id() == v->id();
 	}
 
-	bool is_boundary(){return adjacent_faces().size() == 1;};
+	bool is_boundary() const {return adjacent_faces().size() == 1;};
 
-	vertex_pointer v0(){return adjacent_vertices()[0];};
-	vertex_pointer v1(){return adjacent_vertices()[1];};
+	const_vertex_pointer v0() const {return adjacent_vertices()[0];};
+	const_vertex_pointer v1() const {return adjacent_vertices()[1];};
 
 	void local_coordinates(Point3D* point,
 						   double& x,
-						   double& y)
+						   double& y) const
 	{
 		double d0 = point->distance(v0());
 		if(d0 < 1e-50)
@@ -553,12 +581,12 @@ public:
 		m_p(NULL)
 	{};
 
-	SurfacePoint(vertex_pointer v):		//set the surface point in the vertex
+	SurfacePoint(const_vertex_pointer v):		//set the surface point in the vertex
 		SurfacePoint::Point3D(v),
 		m_p(v)
 	{};
 
-	SurfacePoint(face_pointer f):		//set the surface point in the center of the face
+	SurfacePoint(const_face_pointer f):		//set the surface point in the center of the face
 		m_p(f)
 	{
 		set(0,0,0);
@@ -568,21 +596,21 @@ public:
 		multiply(1./3.);
 	};
 
-	SurfacePoint(edge_pointer e,		//set the surface point in the middle of the edge
+	SurfacePoint(const_edge_pointer e,		//set the surface point in the middle of the edge
 				 double a = 0.5):
 		m_p(e)
 	{
 		double b = 1 - a;
 
-		vertex_pointer v0 = e->adjacent_vertices()[0];
-		vertex_pointer v1 = e->adjacent_vertices()[1];
+		const_vertex_pointer v0 = e->adjacent_vertices()[0];
+		const_vertex_pointer v1 = e->adjacent_vertices()[1];
 
 		x() = b*v0->x() + a*v1->x();
 		y() = b*v0->y() + a*v1->y();
 		z() = b*v0->z() + a*v1->z();
 	};
 
-	SurfacePoint(base_pointer g,
+	SurfacePoint(const_base_pointer g,
 				 double x,
 				 double y,
 				 double z,
@@ -592,24 +620,24 @@ public:
 		set(x,y,z);
 	};
 
-	void initialize(SurfacePoint const& p)
+	void initialize(const SurfacePoint& p)
 	{
 		*this = p;
 	}
 
 	~SurfacePoint(){};
 
-	PointType type(){return m_p ? m_p->type() : UNDEFINED_POINT;};
-	base_pointer& base_element(){return m_p;};
+	PointType type() const {return m_p ? m_p->type() : UNDEFINED_POINT;};
+	const_base_pointer& base_element(){return m_p;};
 protected:
-	base_pointer m_p;			//could be face, vertex or edge pointer
+	const_base_pointer m_p;			//could be face, vertex or edge pointer
 };
 
-inline edge_pointer Face::opposite_edge(vertex_pointer v)
+inline const_edge_pointer Face::opposite_edge(const_vertex_pointer v) const
 {
 	for(unsigned i=0; i<3; ++i)
 	{
-		edge_pointer e = adjacent_edges()[i];
+		const_edge_pointer e = adjacent_edges()[i];
 		if(!e->belongs(v))
 		{
 			return e;
@@ -619,11 +647,11 @@ inline edge_pointer Face::opposite_edge(vertex_pointer v)
 	return NULL;
 }
 
-inline vertex_pointer Face::opposite_vertex(edge_pointer e)
+inline const_vertex_pointer Face::opposite_vertex(const_edge_pointer e) const
 {
 	for(unsigned i=0; i<3; ++i)
 	{
-		vertex_pointer v = adjacent_vertices()[i];
+		const_vertex_pointer v = adjacent_vertices()[i];
 		if(!e->belongs(v))
 		{
 			return v;
@@ -633,13 +661,13 @@ inline vertex_pointer Face::opposite_vertex(edge_pointer e)
 	return NULL;
 }
 
-inline edge_pointer Face::next_edge(edge_pointer e, vertex_pointer v)
+inline const_edge_pointer Face::next_edge(const_edge_pointer e, const_vertex_pointer v) const
 {
 	assert(e->belongs(v));
 
 	for(unsigned i=0; i<3; ++i)
 	{
-		edge_pointer next = adjacent_edges()[i];
+		const_edge_pointer next = adjacent_edges()[i];
 		if(e->id() != next->id() && next->belongs(v))
 		{
 			return next;
@@ -705,8 +733,12 @@ public:
 	std::vector<Edge>& edges(){return m_edges;};
 	std::vector<Face>& faces(){return m_faces;};
 
+	const std::vector<Vertex>& vertices() const {return m_vertices;};
+	const std::vector<Edge>& edges() const {return m_edges;};
+	const std::vector<Face>& faces() const {return m_faces;};
+
 	unsigned closest_vertices(SurfacePoint* p,
-								 std::vector<vertex_pointer>* storage = NULL);		//list vertices closest to the point
+								 std::vector<const_vertex_pointer>* storage = NULL);		//list vertices closest to the point
 
 private:
 
@@ -727,7 +759,7 @@ private:
 };
 
 inline unsigned Mesh::closest_vertices(SurfacePoint* p,
-										  std::vector<vertex_pointer>* storage)
+										  std::vector<const_vertex_pointer>* storage)
 {
 	assert(p->type() != UNDEFINED_POINT);
 
@@ -735,7 +767,7 @@ inline unsigned Mesh::closest_vertices(SurfacePoint* p,
 	{
 		if(storage)
 		{
-			storage->push_back(static_cast<vertex_pointer>(p->base_element()));
+			storage->push_back(static_cast<const_vertex_pointer>(p->base_element()));
 		}
 		return 1;
 	}
@@ -743,16 +775,16 @@ inline unsigned Mesh::closest_vertices(SurfacePoint* p,
 	{
 		if(storage)
 		{
-			vertex_pointer* vp= p->base_element()->adjacent_vertices().begin();
-			storage->push_back(*vp);
-			storage->push_back(*(vp+1));
-			storage->push_back(*(vp+2));
+			const_face_pointer face = static_cast<const_face_pointer>(p->base_element());
+			storage->push_back(face->adjacent_vertices()[0]);
+			storage->push_back(face->adjacent_vertices()[1]);
+			storage->push_back(face->adjacent_vertices()[2]);
 		}
 		return 2;
 	}
 	else if(p->type() == EDGE)		//for edge include all 4 adjacent vertices
 	{
-		edge_pointer edge = static_cast<edge_pointer>(p->base_element());
+		const_edge_pointer edge = static_cast<const_edge_pointer>(p->base_element());
 
 		if(storage)
 		{
@@ -761,7 +793,7 @@ inline unsigned Mesh::closest_vertices(SurfacePoint* p,
 
 			for(unsigned i = 0; i < edge->adjacent_faces().size(); ++i)
 			{
-				face_pointer face = edge->adjacent_faces()[i];
+				const_face_pointer face = edge->adjacent_faces()[i];
 				storage->push_back(face->opposite_vertex(edge));
 			}
 		}
@@ -981,7 +1013,7 @@ inline void Mesh::build_adjacencies()
 		{
 			for(unsigned k=0; k<3; ++k)
 			{
-				vertex_pointer v = f.adjacent_vertices()[(j + k)%3];
+				const_vertex_pointer v = f.adjacent_vertices()[(j + k)%3];
 				abc[k] = f.opposite_edge(v)->length();
 			}
 
@@ -1001,7 +1033,7 @@ inline void Mesh::build_adjacencies()
 		Face& f = m_faces[i];
 		for(unsigned j=0; j<3; ++j)
 		{
-			vertex_pointer v = f.adjacent_vertices()[j];
+			const_vertex_pointer v = f.adjacent_vertices()[j];
 			total_vertex_angle[v->id()] += f.corner_angles()[j];
 		}
 	}
@@ -1033,7 +1065,7 @@ inline bool Mesh::verify()		//verifies connectivity of the mesh and prints some 
 	std::vector<bool> map(m_vertices.size(), false);
 	for(unsigned i=0; i<m_edges.size(); ++i)
 	{
-		edge_pointer e = &m_edges[i];
+		const_edge_pointer e = &m_edges[i];
 		map[e->adjacent_vertices()[0]->id()] = true;
 		map[e->adjacent_vertices()[1]->id()] = true;
 	}
@@ -1041,7 +1073,7 @@ inline bool Mesh::verify()		//verifies connectivity of the mesh and prints some 
 
 	//make sure that the mesh is connected trough its edges
 	//if mesh has more than one connected component, it is most likely a bug
-	std::vector<face_pointer> stack(1,&m_faces[0]);
+	std::vector<const_face_pointer> stack(1,&m_faces[0]);
 	stack.reserve(m_faces.size());
 
 	map.resize(m_faces.size());
@@ -1050,13 +1082,13 @@ inline bool Mesh::verify()		//verifies connectivity of the mesh and prints some 
 
 	while(!stack.empty())
 	{
-		face_pointer f = stack.back();
+		const_face_pointer f = stack.back();
 		stack.pop_back();
 
 		for(unsigned i=0; i<3; ++i)
 		{
-			edge_pointer e = f->adjacent_edges()[i];
-			face_pointer f_adjacent = e->opposite_face(f);
+			const_edge_pointer e = f->adjacent_edges()[i];
+			const_face_pointer f_adjacent = e->opposite_face(f);
 			if(f_adjacent && !map[f_adjacent->id()])
 			{
 				map[f_adjacent->id()] = true;
@@ -1303,12 +1335,12 @@ public:
 	double& pseudo_y(){return m_pseudo_y;};
 	double& min(){return m_min;};
 	interval_pointer& next(){return m_next;};
-	edge_pointer& edge(){return m_edge;};
+	const_edge_pointer& edge(){return m_edge;};
 	DirectionType& direction(){return m_direction;};
 	bool visible_from_source(){return m_direction == FROM_SOURCE;};
 	unsigned& source_index(){return m_source_index;};
 
-	void initialize(edge_pointer edge,
+	void initialize(const_edge_pointer edge,
 					SurfacePoint* point = NULL,
 					unsigned source_index = 0);
 
@@ -1320,7 +1352,7 @@ protected:
 	double m_min;						//minimum distance on the interval
 
 	interval_pointer m_next;			//pointer to the next interval in the list
-	edge_pointer m_edge;				//edge that the interval belongs to
+	const_edge_pointer m_edge;			//edge that the interval belongs to
 	unsigned m_source_index;			//the source it belongs to
 	DirectionType m_direction;			//where the interval is coming from
 };
@@ -1344,7 +1376,7 @@ public:
 		m_first = NULL;
 	};
 
-	void initialize(edge_pointer e)
+	void initialize(const_edge_pointer e)
 	{
 		m_edge = e;
 		m_first = NULL;
@@ -1425,10 +1457,10 @@ public:
 	}
 
 	interval_pointer& first(){return m_first;};
-	edge_pointer& edge(){return m_edge;};
+	const_edge_pointer& edge(){return m_edge;};
 private:
 	interval_pointer m_first;			//pointer to the first member of the list
-	edge_pointer m_edge;				//edge that owns this list
+	const_edge_pointer m_edge;				//edge that owns this list
 };
 
 class SurfacePointWithIndex : public SurfacePoint
@@ -1468,7 +1500,7 @@ public:
 	typedef sorted_vector_type::iterator sorted_iterator;
 	typedef std::pair<sorted_iterator, sorted_iterator> sorted_iterator_pair;
 
-	sorted_iterator_pair sources(base_pointer mesh_element)
+	sorted_iterator_pair sources(const_base_pointer mesh_element)
 	{
 		m_search_dummy.base_element() = mesh_element;
 
@@ -1564,7 +1596,7 @@ inline void Interval::find_closest_point(double const rs,
 	}
 
 
-inline void Interval::initialize(edge_pointer edge,
+inline void Interval::initialize(const_edge_pointer edge,
 								 SurfacePoint* source,
 								 unsigned source_index)
 {
@@ -1653,7 +1685,7 @@ public:
 		std::cout << "propagation step took " << m_time_consumed << " seconds " << std::endl;
 	};
 
-	AlgorithmType type(){return m_type;};
+	AlgorithmType type() const {return m_type;};
 
 	virtual std::string name();
 
@@ -1669,7 +1701,7 @@ protected:
 
 	AlgorithmType m_type;					   // type of the algorithm
 
-	typedef std::pair<vertex_pointer, double> stop_vertex_with_distace_type;
+	typedef std::pair<const_vertex_pointer, double> stop_vertex_with_distace_type;
 	std::vector<stop_vertex_with_distace_type> m_stop_vertices; // algorithm stops propagation after covering certain vertices
 	double m_max_propagation_distance;			 // or reaching the certain distance
 
@@ -1761,7 +1793,7 @@ inline void GeodesicAlgorithmBase::set_stop_conditions(std::vector<SurfacePoint>
 
 	m_stop_vertices.resize(stop_points->size());
 
-	std::vector<vertex_pointer> possible_vertices;
+	std::vector<const_vertex_pointer> possible_vertices;
 	for(unsigned i = 0; i < stop_points->size(); ++i)
 	{
 		SurfacePoint* point = &(*stop_points)[i];
@@ -1769,7 +1801,7 @@ inline void GeodesicAlgorithmBase::set_stop_conditions(std::vector<SurfacePoint>
 		possible_vertices.clear();
 		m_mesh->closest_vertices(point, &possible_vertices);
 
-		vertex_pointer closest_vertex = NULL;
+		const_vertex_pointer closest_vertex = nullptr;
 		double min_distance = 1e100;
 		for(unsigned j = 0; j < possible_vertices.size(); ++j)
 		{
@@ -1840,8 +1872,8 @@ private:
 											IntervalWithStop* candidates);		//if it is the last interval on the edge
 
 	void construct_propagated_intervals(bool invert,
-									  edge_pointer edge,
-									  face_pointer face,		//constructs iNew from the rest of the data
+									  const_edge_pointer edge,
+									  const_face_pointer face,		//constructs iNew from the rest of the data
 									  IntervalWithStop* candidates,
 									  unsigned& num_candidates,
 									  interval_pointer source_interval);
@@ -1873,7 +1905,7 @@ private:
 		m_propagation_distance_stopped = GEODESIC_INF;
 	};
 
-	list_pointer interval_list(edge_pointer e)
+	list_pointer interval_list(const_edge_pointer e)
 	{
 		return &m_edge_interval_lists[e->id()];
 	};
@@ -1885,19 +1917,19 @@ private:
 
 	void initialize_propagation_data();
 
-	void list_edges_visible_from_source(MeshElementBase* p,
-										std::vector<edge_pointer>& storage); //used in initialization
+	void list_edges_visible_from_source(const MeshElementBase* p,
+										std::vector<const_edge_pointer>& storage); //used in initialization
 
 	long visible_from_source(SurfacePoint& point);	//used in backtracing
 
 	void best_point_on_the_edge_set(SurfacePoint& point,
-									std::vector<edge_pointer> const& storage,
+									const std::vector<const_edge_pointer> & storage,
 									interval_pointer& best_interval,
 									double& best_total_distance,
 									double& best_interval_position);
 
 	void possible_traceback_edges(SurfacePoint& point,
-								  std::vector<edge_pointer>& storage);
+								  std::vector<const_edge_pointer>& storage);
 
 	bool erase_from_queue(interval_pointer p);
 
@@ -1918,7 +1950,7 @@ private:
 };
 
 inline void GeodesicAlgorithmExact::best_point_on_the_edge_set(SurfacePoint& point,
-															   std::vector<edge_pointer> const& storage,
+															   const std::vector<const_edge_pointer> & storage,
 															   interval_pointer& best_interval,
 															   double& best_total_distance,
 															   double& best_interval_position)
@@ -1926,7 +1958,7 @@ inline void GeodesicAlgorithmExact::best_point_on_the_edge_set(SurfacePoint& poi
 	best_total_distance = 1e100;
 	for(unsigned i=0; i<storage.size(); ++i)
 	{
-		edge_pointer e = storage[i];
+		const_edge_pointer e = storage[i];
 		list_pointer list = interval_list(e);
 
 		double offset;
@@ -1948,25 +1980,25 @@ inline void GeodesicAlgorithmExact::best_point_on_the_edge_set(SurfacePoint& poi
 }
 
 inline void GeodesicAlgorithmExact::possible_traceback_edges(SurfacePoint& point,
-															 std::vector<edge_pointer>& storage)
+															 std::vector<const_edge_pointer>& storage)
 {
 	storage.clear();
 
 	if(point.type() == VERTEX)
 	{
-		vertex_pointer v = static_cast<vertex_pointer>(point.base_element());
+		const_vertex_pointer v = static_cast<const_vertex_pointer>(point.base_element());
 		for(unsigned i=0; i<v->adjacent_faces().size(); ++i)
 		{
-			face_pointer f = v->adjacent_faces()[i];
+			const_face_pointer f = v->adjacent_faces()[i];
 			storage.push_back(f->opposite_edge(v));
 		}
 	}
 	else if(point.type() == EDGE)
 	{
-		edge_pointer e = static_cast<edge_pointer>(point.base_element());
+		const_edge_pointer e = static_cast<const_edge_pointer>(point.base_element());
 		for(unsigned i=0; i<e->adjacent_faces().size(); ++i)
 		{
-			face_pointer f = e->adjacent_faces()[i];
+			const_face_pointer f = e->adjacent_faces()[i];
 
 			storage.push_back(f->next_edge(e,e->v0()));
 			storage.push_back(f->next_edge(e,e->v1()));
@@ -1974,7 +2006,7 @@ inline void GeodesicAlgorithmExact::possible_traceback_edges(SurfacePoint& point
 	}
 	else
 	{
-		face_pointer f = static_cast<face_pointer>(point.base_element());
+		const_face_pointer f = static_cast<const_face_pointer>(point.base_element());
 		storage.push_back(f->adjacent_edges()[0]);
 		storage.push_back(f->adjacent_edges()[1]);
 		storage.push_back(f->adjacent_edges()[2]);
@@ -1988,7 +2020,7 @@ inline long GeodesicAlgorithmExact::visible_from_source(SurfacePoint& point)	//n
 
 	if(point.type() == EDGE)
 	{
-		edge_pointer e = static_cast<edge_pointer>(point.base_element());
+		const_edge_pointer e = static_cast<const_edge_pointer>(point.base_element());
 		list_pointer list = interval_list(e);
 		double position = std::min(point.distance(e->v0()), e->length());
 		interval_pointer interval = list->covering_interval(position);
@@ -2008,7 +2040,7 @@ inline long GeodesicAlgorithmExact::visible_from_source(SurfacePoint& point)	//n
 	}
 	else if(point.type() == VERTEX)
 	{
-		vertex_pointer v = static_cast<vertex_pointer>(point.base_element());
+		const_vertex_pointer v = static_cast<const_vertex_pointer>(point.base_element());
 		for(unsigned i=0; i<v->adjacent_edges().size(); ++i)
 		{
 			edge_pointer e = v->adjacent_edges()[i];
@@ -2058,14 +2090,14 @@ inline double GeodesicAlgorithmExact::compute_positive_intersection(double start
 	return numerator/denominator;
 }
 
-inline void GeodesicAlgorithmExact::list_edges_visible_from_source(MeshElementBase* p,
-																   std::vector<edge_pointer>& storage)
+inline void GeodesicAlgorithmExact::list_edges_visible_from_source(const MeshElementBase* p,
+																   std::vector<const_edge_pointer>& storage)
 {
 	assert(p->type() != UNDEFINED_POINT);
 
 	if(p->type() == FACE)
 	{
-		face_pointer f = static_cast<face_pointer>(p);
+		const_face_pointer f = static_cast<const_face_pointer>(p);
 		for(unsigned i=0; i<3; ++i)
 		{
 			storage.push_back(f->adjacent_edges()[i]);
@@ -2073,17 +2105,16 @@ inline void GeodesicAlgorithmExact::list_edges_visible_from_source(MeshElementBa
 	}
 	else if(p->type() == EDGE)
 	{
-		edge_pointer e = static_cast<edge_pointer>(p);
+		const_edge_pointer e = static_cast<const_edge_pointer>(p);
 		storage.push_back(e);
 	}
 	else			//VERTEX
 	{
-		vertex_pointer v = static_cast<vertex_pointer>(p);
+		const_vertex_pointer v = static_cast<const_vertex_pointer>(p);
 		for(unsigned i=0; i<v->adjacent_edges().size(); ++i)
 		{
 			storage.push_back(v->adjacent_edges()[i]);
 		}
-
 	}
 }
 
@@ -2282,7 +2313,7 @@ inline void GeodesicAlgorithmExact::initialize_propagation_data()
 	clear();
 
 	IntervalWithStop candidate;
-	std::vector<edge_pointer> edges_visible_from_source;
+	std::vector<const_edge_pointer> edges_visible_from_source;
 	for(unsigned i=0; i<m_sources.size(); ++i)		//for all edges adjacent to the starting vertex
 	{
 		SurfacePoint* source = &m_sources[i];
@@ -2293,7 +2324,7 @@ inline void GeodesicAlgorithmExact::initialize_propagation_data()
 
 		for(unsigned j=0; j<edges_visible_from_source.size(); ++j)
 		{
-			edge_pointer e = edges_visible_from_source[j];
+			const_edge_pointer e = edges_visible_from_source[j];
 			candidate.initialize(e, source, i);
             candidate.stop() = e->length();
 			candidate.compute_min_distance(candidate.stop());
@@ -2336,7 +2367,7 @@ inline void GeodesicAlgorithmExact::propagate(std::vector<SurfacePoint>& sources
 
 		interval_pointer min_interval = *m_queue.begin();
 		m_queue.erase(m_queue.begin());
-		edge_pointer edge = min_interval->edge();
+		const_edge_pointer edge = min_interval->edge();
 		list_pointer list = interval_list(edge);
 
 		assert(min_interval->d() < GEODESIC_INF);
@@ -2359,8 +2390,8 @@ inline void GeodesicAlgorithmExact::propagate(std::vector<SurfacePoint>& sources
 				}
 			}
 
-			face_pointer face = edge->adjacent_faces()[i];			//if we come from 1, go to 2
-			edge_pointer next_edge = face->next_edge(edge,edge->v0());
+			const_face_pointer face = edge->adjacent_faces()[i];			//if we come from 1, go to 2
+			const_edge_pointer next_edge = face->next_edge(edge,edge->v0());
 
 			unsigned num_propagated = compute_propagated_parameters(min_interval->pseudo_x(),
 																	 min_interval->pseudo_y(),
@@ -2464,8 +2495,8 @@ inline bool GeodesicAlgorithmExact::check_stop_conditions(unsigned& index)
 
 	while(index < m_stop_vertices.size())
 	{
-		vertex_pointer v = m_stop_vertices[index].first;
-		edge_pointer edge = v->adjacent_edges()[0];				//take any edge
+		const_vertex_pointer v = m_stop_vertices[index].first;
+		const_edge_pointer edge = v->adjacent_edges()[0];				//take any edge
 
 		double distance = edge->v0()->id() == v->id() ?
 						  interval_list(edge)->signal(0.0) :
@@ -2488,7 +2519,7 @@ inline void GeodesicAlgorithmExact::update_list_and_queue(list_pointer list,
 {
 	assert(num_candidates <= 2);
 	//assert(list->first() != NULL);
-	edge_pointer edge = list->edge();
+	const_edge_pointer edge = list->edge();
 	double const local_epsilon = SMALLEST_INTERVAL_RATIO * edge->length();
 
 	if(list->first() == NULL)
@@ -2837,8 +2868,8 @@ inline unsigned GeodesicAlgorithmExact::compute_propagated_parameters(double pse
 }
 
 inline void GeodesicAlgorithmExact::construct_propagated_intervals(bool invert,
-																	edge_pointer edge,
-																	face_pointer face,		//constructs iNew from the rest of the data
+																	const_edge_pointer edge,
+																	const_face_pointer face,		//constructs iNew from the rest of the data
 																	IntervalWithStop* candidates,
 																	unsigned& num_candidates,
 																	interval_pointer source_interval)	//up to two candidates
@@ -2972,7 +3003,7 @@ inline interval_pointer GeodesicAlgorithmExact::best_first_interval(SurfacePoint
 
 	if(point.type() == EDGE)
 	{
-		edge_pointer e = static_cast<edge_pointer>(point.base_element());
+		const_edge_pointer e = static_cast<const_edge_pointer>(point.base_element());
 		list_pointer list = interval_list(e);
 
 		best_interval_position = point.distance(e->v0());
@@ -2986,7 +3017,7 @@ inline interval_pointer GeodesicAlgorithmExact::best_first_interval(SurfacePoint
 	}
 	else if(point.type() == FACE)
 	{
-		face_pointer f = static_cast<face_pointer>(point.base_element());
+		const_face_pointer f = static_cast<const_face_pointer>(point.base_element());
 		for(unsigned i=0; i<3; ++i)
 		{
 			edge_pointer e = f->adjacent_edges()[i];
@@ -3027,7 +3058,7 @@ inline interval_pointer GeodesicAlgorithmExact::best_first_interval(SurfacePoint
 	}
 	else if(point.type() == VERTEX)
 	{
-		vertex_pointer v = static_cast<vertex_pointer>(point.base_element());
+		const_vertex_pointer v = static_cast<const_vertex_pointer>(point.base_element());
 		for(unsigned i=0; i<v->adjacent_edges().size(); ++i)
 		{
 			edge_pointer e = v->adjacent_edges()[i];
@@ -3082,7 +3113,7 @@ inline void GeodesicAlgorithmExact::trace_back(SurfacePoint& destination,		//tra
 
 	if(best_interval)	//if we did not hit the face source immediately
 	{
-		std::vector<edge_pointer> possible_edges;
+		std::vector<const_edge_pointer> possible_edges;
 		possible_edges.reserve(10);
 
 		while(visible_from_source(path.back()) < 0)		//while this point is not in the direct visibility of some source (if we are inside the FACE, we obviously hit the source)
@@ -3105,7 +3136,7 @@ inline void GeodesicAlgorithmExact::trace_back(SurfacePoint& destination,		//tra
 			assert(total_distance<GEODESIC_INF);
 			source_index = interval->source_index();
 
-			edge_pointer e = interval->edge();
+			const_edge_pointer e = interval->edge();
 			double local_epsilon = SMALLEST_INTERVAL_RATIO*e->length();
 			if(position < local_epsilon)
 			{
