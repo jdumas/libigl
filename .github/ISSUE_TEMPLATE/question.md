@@ -1,13 +1,13 @@
 ---
-name: Feature request
-about: Suggest an idea for this project
+name: Question
+about: Ask question about the tutorial or documentation
 title: ''
-labels: 'enhancement'
+labels: 'question'
 assignees: ''
 
 ---
 
-#### Describe your feature request
+#### Describe your question
 
 ...
 
